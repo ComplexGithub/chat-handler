@@ -1,6 +1,7 @@
 # chat-handler
 ## By complex#2300 (900187302016471092)
 
+### Preview
 ![](https://cdn.discordapp.com/attachments/753019137638269040/989503704606572624/unknown.png)
 
 ### Script
