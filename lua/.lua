@@ -521,7 +521,7 @@ CommandBox.FocusLost:Connect(function(EnterPressed)
             end
         end
         if CommandBox.Text:find("restart") then
-            syn.queue_on_teleport(game:HttpGetAsync("https://raw.githubusercontent.com/ComplexGithub/chat-handler/main/init.lua"))
+            syn.queue_on_teleport(game:HttpGetAsync("https://raw.githubusercontent.com/ComplexGithub/chat-handler/main/lua/init.lua"))
             game:GetService("TeleportService"):Teleport(game.PlaceId, game:GetService("Players").LocalPlayer)
         end
         if CommandBox.Text:find("close") then
