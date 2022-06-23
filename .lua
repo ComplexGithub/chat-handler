@@ -1,6 +1,8 @@
 -- I'm terribly sorry about how bad my code is 😭
 -- Made by complex#2300 (900187302016471092)
 
+repeat wait() until game:IsLoaded()
+
 if isfolder("chat-handler") == false then
     makefolder("chat-handler")
 end
@@ -61,7 +63,7 @@ local Toggle_2 = Instance.new("TextButton")
 local UICorner_5 = Instance.new("UICorner")
 
 ChatHandler.Name = "ChatHandler"
-ChatHandler.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+ChatHandler.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 ChatHandler.ResetOnSpawn = false
 ChatHandler.ZIndexBehavior = Enum.ZIndexBehavior.Global
 
