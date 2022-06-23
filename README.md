@@ -9,7 +9,7 @@
 _G.AutoScroll = false -- Enables/disables auto scrolling.
 _G.Enabled = true -- Enables/disables logs.
 
-loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/ComplexGithub/chat-handler/main/.lua"))();
+loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/ComplexGithub/chat-handler/main/lua/.lua"))();
 ```
 
 ### Commands
