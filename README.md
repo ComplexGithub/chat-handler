@@ -6,8 +6,8 @@
 
 ### Script
 ```lua
-_G.AutoScroll = false -- Enables/disables Auto Scroll
-_G.Enabled = true -- Enables/disables Logs
+_G.AutoScroll = false -- Enables/disables auto scrolling.
+_G.Enabled = true -- Enables/disables logs.
 
 loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/ComplexGithub/chat-handler/main/.lua"))();
 ```
