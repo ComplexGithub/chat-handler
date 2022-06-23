@@ -521,6 +521,8 @@ CommandBox.FocusLost:Connect(function(EnterPressed)
             end
         end
         if CommandBox.Text:find("restart") then
+			_G.AutoScroll = false -- Enables/disables auto scrolling.
+			_G.Enabled = true -- Enables/disables logs.
             syn.queue_on_teleport(game:HttpGetAsync("https://raw.githubusercontent.com/ComplexGithub/chat-handler/main/.lua"))
             game:GetService("TeleportService"):Teleport(game.PlaceId, game:GetService("Players").LocalPlayer)
         end
