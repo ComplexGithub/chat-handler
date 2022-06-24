@@ -6,8 +6,8 @@ repeat wait() until game:IsLoaded()
 if isfolder("chat-handler") == false then
     makefolder("chat-handler")
 end
-if isfile("chat-handler/theme.txt") == false then
-    writefile("chat-handler/theme.txt", "default")
+if isfile("chat-handler/settings.txt") == false then
+    writefile("chat-handler/theme.txt", game:GetService("HttpService"):JSONEncode({["Theme"] = "default", ["AutoLogLimit"] = 200}))
 end
 if isfolder("chat-handler/logs") == false then
     makefolder("chat-handler/logs")
@@ -38,7 +38,10 @@ if isfile("chat-handler/themes/default/settings.json") == false then
 }]])
 end
 
-_G.CurrentTheme = readfile("chat-handler/theme.txt")
+_G.CurrentTheme = game:GetService("HttpService"):JSONDecode(readfile("chat-handler/settings.txt"))["Theme"]
+_G.AutoLogLimit = game:GetService("HttpService"):JSONDecode(readfile("chat-handler/settings.txt"))["AutoLogLimit"]
+
+local Logs = {}
 
 local ChatHandler = Instance.new("ScreenGui")
 local Main = Instance.new("Frame")
@@ -355,33 +358,8 @@ function TweenBGColor(Object, Time, Color)
     end)
 end
 
-function UpdateMessageFrame(MessageFrame, ColorToUse)
-    coroutine.wrap(function()
-        while task.wait() and MessageFrame ~= nil do
-            pcall(function()
-                local MinimumSize = 31
-                local Message = MessageFrame:FindFirstChild("PlayerMessage")
-    
-                local NewSize = UDim2.new(
-                    Message.Size.X.Scale, Message.Size.X.Offset,
-                    Message.Size.Y.Scale, math.max(MinimumSize, Message.TextBounds.Y)
-                )
-    
-                local NewSize2 = UDim2.new(
-                    MessageFrame.Size.X.Scale, MessageFrame.Size.X.Offset,
-                    MessageFrame.Size.Y.Scale, math.max(MinimumSize + 19, Message.Size.Y.Offset + 19)
-                )
-
-                local ColorInfo = game:GetService("HttpService"):JSONDecode(readfile("chat-handler/themes/" .. _G.CurrentTheme .. "/settings.json"))[ColorToUse]
-                local NewColor = Color3.fromRGB(ColorInfo.R, ColorInfo.G, ColorInfo.B)
-
-                TweenTextColor(Message, 0.2, NewColor)
-    
-                MessageFrame:TweenSize(NewSize2, "Out", "Quint", 0.3, true)
-                Message:TweenSize(NewSize, "Out", "Quint", 0.3, true)
-            end)
-        end
-    end)()
+function UpdateLogs(MessageFrame, ColorToUse)
+    table.insert(Logs, {["Frame"] = MessageFrame, ["Color"] = ColorToUse,})
 end
 
 function FindPlayer(String)
@@ -421,10 +399,61 @@ function ReturnTime()
 end
 
 coroutine.wrap(function()
+    while task.wait() do
+        for _, Log in ipairs(Logs) do
+            pcall(function()
+                local MinimumSize = 31
+                local Frame = Log["Frame"]
+                local Message = Frame:FindFirstChild("PlayerMessage")
+
+                local FrameSize = UDim2.new(
+                    Frame.Size.X.Scale, Frame.Size.X.Offset,
+                    Frame.Size.Y.Scale, math.max(MinimumSize + 19, Message.Size.Y.Offset + 19)
+                )
+
+                local MessageSize = UDim2.new(
+                    Message.Size.X.Scale, Message.Size.X.Offset,
+                    Message.Size.Y.Scale, math.max(MinimumSize, Message.TextBounds.Y)
+                )
+
+                local ColorInfo = game:GetService("HttpService"):JSONDecode(readfile("chat-handler/themes/" .. _G.CurrentTheme .. "/settings.json"))[Log["Color"]]
+                local NewColor = Color3.fromRGB(ColorInfo.R, ColorInfo.G, ColorInfo.B)
+
+                TweenTextColor(Message, 0.2, NewColor)
+
+                Frame.Size = FrameSize
+                Message.Size = MessageSize
+            end)
+        end
+    end
+end)()
+
+coroutine.wrap(function()
     while wait() do
         Messages.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + UIListLayout.Padding.Offset)
         if _G.AutoScroll then
             Messages.CanvasPosition = Messages.CanvasPosition + Vector2.new(0, UIListLayout.AbsoluteContentSize.Y + UIListLayout.Padding.Offset)
+        end
+    end
+end)()
+
+coroutine.wrap(function()
+    while task.wait() do
+        if #Messages:GetChildren() - 1 >= tonumber(_G.AutoLogLimit) then
+            local Time, Date, FileName = ReturnTime()
+            local info = "Saved at: " .. Time .. ", " .. Date .. "\n"
+            for _, V in ipairs(Messages:GetChildren()) do
+                if V:IsA("Frame") then
+                    info = info .. "\n" .. V.TimeStamp.Value .. " - [" .. V.Player.Text:gsub("<font color='#AAAAAA'>", ""):gsub("</font>", "") .. "]: " .. V.PlayerMessage.Text
+                    V:Destroy()
+                end
+            end
+            if isfolder("chat-handler/logs/" .. game.PlaceId) == true then
+                writefile("chat-handler/logs/" .. game.PlaceId .. "/" .. FileName .. "-auto.log", info)
+            else
+                makefolder("chat-handler/logs/" .. game.PlaceId)
+                writefile("chat-handler/logs/" .. game.PlaceId .. "/" .. FileName .. "-auto.log", info)
+            end
         end
     end
 end)()
@@ -484,11 +513,11 @@ end)
 
 CommandBox.FocusLost:Connect(function(EnterPressed)
     if EnterPressed then
-        if CommandBox.Text == "cmds" then
+        if CommandBox.Text:find("cmds") then
             setclipboard("https://github.com/ComplexGithub/chat-handler/blob/main/README.md")
             CommandBox.Text = "Copied link to commands!"
         end
-        if CommandBox.Text == "cchat" then
+        if CommandBox.Text:find("cchat") then
             for _, V in ipairs(Messages:GetChildren()) do
                 if V:IsA("Frame") then
                     V:Destroy()
@@ -496,7 +525,7 @@ CommandBox.FocusLost:Connect(function(EnterPressed)
             end
             CommandBox.Text = ""
         end
-        if CommandBox.Text == "schat" then
+        if CommandBox.Text:find("schat") then
             local Time, Date, FileName = ReturnTime()
             local info = "Saved at: " .. Time .. ", " .. Date .. "\n"
             for _, V in ipairs(Messages:GetChildren()) do
@@ -512,11 +541,17 @@ CommandBox.FocusLost:Connect(function(EnterPressed)
             end
             CommandBox.Text = ""
         end
+        if CommandBox.Text:find("limit") then
+            local Limit = CommandBox.Text:gsub("limit ", "")
+            _G.AutoLogLimit = tonumber(Limit)
+            writefile("chat-handler/settings.txt", game:GetService("HttpService"):JSONEncode({["Theme"] = _G.CurrentTheme, ["AutoLogLimit"] = Limit}))
+            CommandBox.Text = ""
+        end
         if CommandBox.Text:find("theme") then
             local Theme = CommandBox.Text:gsub("theme ", "")
             if isfolder("chat-handler/themes/" .. Theme) then
                 _G.CurrentTheme = Theme
-                writefile("chat-handler/theme.txt", Theme)
+                writefile("chat-handler/settings.txt", game:GetService("HttpService"):JSONEncode({["Theme"] = Theme, ["AutoLogLimit"] = _G.AutoLogLimit}))
                 CommandBox.Text = ""
             end
         end
@@ -550,13 +585,13 @@ for _, V in ipairs(game:GetService("Players"):GetPlayers()) do
                     local ColorInfo = game:GetService("HttpService"):JSONDecode(readfile("chat-handler/themes/" .. _G.CurrentTheme .. "/settings.json"))["PrivateChatColor"]
                     local NewColor = Color3.fromRGB(ColorInfo.R, ColorInfo.G, ColorInfo.B)
                     Clone = CreateMessage(Messages, P .. " > " .. PlayerName, TextInput, NewColor, Time)
-                    UpdateMessageFrame(Clone, "PrivateChatColor")
+                    UpdateLogs(Clone, "PrivateChatColor")
                 else
                     local Time, _, _2 = ReturnTime()
                     local ColorInfo = game:GetService("HttpService"):JSONDecode(readfile("chat-handler/themes/" .. _G.CurrentTheme .. "/settings.json"))["UserChatColor"]
                     local NewColor = Color3.fromRGB(ColorInfo.R, ColorInfo.G, ColorInfo.B)
                     Clone = CreateMessage(Messages, P, PlayerText, NewColor, Time)
-                    UpdateMessageFrame(Clone, "UserChatColor")
+                    UpdateLogs(Clone, "UserChatColor")
                 end
             else
                 local Clone
@@ -574,13 +609,13 @@ for _, V in ipairs(game:GetService("Players"):GetPlayers()) do
                     local ColorInfo = game:GetService("HttpService"):JSONDecode(readfile("chat-handler/themes/" .. _G.CurrentTheme .. "/settings.json"))["PrivateChatColor"]
                     local NewColor = Color3.fromRGB(ColorInfo.R, ColorInfo.G, ColorInfo.B)
                     Clone = CreateMessage(Messages, P .. " > " .. PlayerName, TextInput, NewColor, Time)
-                    UpdateMessageFrame(Clone, "PrivateChatColor")
+                    UpdateLogs(Clone, "PrivateChatColor")
                 else
                     local Time, _, _2 = ReturnTime()
                     local ColorInfo = game:GetService("HttpService"):JSONDecode(readfile("chat-handler/themes/" .. _G.CurrentTheme .. "/settings.json"))["NormalChatColor"]
                     local NewColor = Color3.fromRGB(ColorInfo.R, ColorInfo.G, ColorInfo.B)
                     Clone = CreateMessage(Messages, P, PlayerText, NewColor, Time)
-                    UpdateMessageFrame(Clone, "NormalChatColor")
+                    UpdateLogs(Clone, "NormalChatColor")
                 end
             end
         end
@@ -602,13 +637,13 @@ game:GetService("Players").PlayerAdded:Connect(function(V)
                     local ColorInfo = game:GetService("HttpService"):JSONDecode(readfile("chat-handler/themes/" .. _G.CurrentTheme .. "/settings.json"))["PrivateChatColor"]
                     local NewColor = Color3.fromRGB(ColorInfo.R, ColorInfo.G, ColorInfo.B)
                     Clone = CreateMessage(Messages, P .. " > " .. PlayerName, TextInput, NewColor, Time)
-                    UpdateMessageFrame(Clone, "PrivateChatColor")
+                    UpdateLogs(Clone, "PrivateChatColor")
                 else
                     local Time, _, _2 = ReturnTime()
                     local ColorInfo = game:GetService("HttpService"):JSONDecode(readfile("chat-handler/themes/" .. _G.CurrentTheme .. "/settings.json"))["UserChatColor"]
                     local NewColor = Color3.fromRGB(ColorInfo.R, ColorInfo.G, ColorInfo.B)
                     Clone = CreateMessage(Messages, P, PlayerText, NewColor, Time)
-                    UpdateMessageFrame(Clone, "UserChatColor")
+                    UpdateLogs(Clone, "UserChatColor")
                 end
             else
                 local Clone
@@ -621,13 +656,13 @@ game:GetService("Players").PlayerAdded:Connect(function(V)
                     local ColorInfo = game:GetService("HttpService"):JSONDecode(readfile("chat-handler/themes/" .. _G.CurrentTheme .. "/settings.json"))["PrivateChatColor"]
                     local NewColor = Color3.fromRGB(ColorInfo.R, ColorInfo.G, ColorInfo.B)
                     Clone = CreateMessage(Messages, P .. " > " .. PlayerName, TextInput, NewColor, Time)
-                    UpdateMessageFrame(Clone, "PrivateChatColor")
+                    UpdateLogs(Clone, "PrivateChatColor")
                 else
                     local Time, _, _2 = ReturnTime()
                     local ColorInfo = game:GetService("HttpService"):JSONDecode(readfile("chat-handler/themes/" .. _G.CurrentTheme .. "/settings.json"))["NormalChatColor"]
                     local NewColor = Color3.fromRGB(ColorInfo.R, ColorInfo.G, ColorInfo.B)
                     Clone = CreateMessage(Messages, P, PlayerText, NewColor, Time)
-                    UpdateMessageFrame(Clone, "NormalChatColor")
+                    UpdateLogs(Clone, "NormalChatColor")
                 end
             end
         end
