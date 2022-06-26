@@ -558,34 +558,37 @@ end)
 
 CommandBox.FocusLost:Connect(function(EnterPressed)
     if EnterPressed then
-        if CommandBox.Text:find("^cmds$") then
-            setclipboard("https://github.com/ComplexGithub/chat-handler/blob/main/README.md")
-            CommandBox.Text = "Copied link to commands!"
-            task.wait(2)
+        if CommandBox.Text:find("^commands$") or CommandBox.Text:find("^cmds$") then
+            local CommandNames = {
+                "commands (cmds)", "savechat (schat)", "limit (l) [value]", "theme (th) [name]", "restart (rs)", "close (cl)",
+            }
+            for _, Command in ipairs(CommandNames) do
+                rconsoleprint(Command .. "\n")
+            end
         end
-        if CommandBox.Text:find("^schat$") then
+        if CommandBox.Text:find("^savechat$") or CommandBox.Text:find("^schat$") then
             SaveChat(false)
         end
-        if CommandBox.Text:find("^limit%s+") then
-            local Limit = CommandBox.Text:gsub("limit%s+", "")
+        if CommandBox.Text:find("^limit%s+") or CommandBox.Text:find("^l%s+") then
+            local Limit = CommandBox.Text:gsub("%w+%s+", "")
             _G.AutoLogLimit = tonumber(Limit)
             writefile("chat-handler/settings.txt", game:GetService("HttpService"):JSONEncode({["CurrentTheme"] = _G.CurrentTheme, ["AutoLogLimit"] = Limit}))
         end
-        if CommandBox.Text:find("^theme%s+") then
-            local Theme = CommandBox.Text:gsub("theme%s+", "")
+        if CommandBox.Text:find("^theme%s+") or CommandBox.Text:find("^th%s+")then
+            local Theme = CommandBox.Text:gsub("%w+%s+", "")
             if isfolder("chat-handler/themes/" .. Theme) then
                 _G.CurrentTheme = Theme
                 writefile("chat-handler/settings.txt", game:GetService("HttpService"):JSONEncode({["CurrentTheme"] = Theme, ["AutoLogLimit"] = _G.AutoLogLimit}))
             end
         end
-        if CommandBox.Text:find("^restart$") then
+        if CommandBox.Text:find("^restart$") or CommandBox.Text:find("^rs$") then
             if #Messages:GetChildren() > 1 then
                 SaveChat(false)
             end
             syn.queue_on_teleport(game:HttpGetAsync("https://raw.githubusercontent.com/ComplexGithub/chat-handler/main/lua/init.lua"))
             game:GetService("TeleportService"):Teleport(game.PlaceId, game:GetService("Players").LocalPlayer)
         end
-        if CommandBox.Text:find("^close$") then
+        if CommandBox.Text:find("^close$") or CommandBox.Text:find("^cl$") then
             if #Messages:GetChildren() > 1 then
                 SaveChat(false)
             end
