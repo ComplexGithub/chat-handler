@@ -7,7 +7,7 @@ if isfolder("chat-handler") == false then
     makefolder("chat-handler")
 end
 if isfile("chat-handler/settings.txt") == false then
-    writefile("chat-handler/theme.txt", game:GetService("HttpService"):JSONEncode({["Theme"] = "default", ["AutoLogLimit"] = 200}))
+    writefile("chat-handler/settings.txt", game:GetService("HttpService"):JSONEncode({["CurrentTheme"] = "default", ["AutoLogLimit"] = 200}))
 end
 if isfolder("chat-handler/logs") == false then
     makefolder("chat-handler/logs")
@@ -38,7 +38,7 @@ if isfile("chat-handler/themes/default/settings.json") == false then
 }]])
 end
 
-_G.CurrentTheme = game:GetService("HttpService"):JSONDecode(readfile("chat-handler/settings.txt"))["Theme"]
+_G.CurrentTheme = game:GetService("HttpService"):JSONDecode(readfile("chat-handler/settings.txt"))["CurrentTheme"]
 _G.AutoLogLimit = game:GetService("HttpService"):JSONDecode(readfile("chat-handler/settings.txt"))["AutoLogLimit"]
 
 local Logs = {}
@@ -237,6 +237,21 @@ Toggle_2.TextSize = 14.000
 UICorner_5.CornerRadius = UDim.new(0, 3)
 UICorner_5.Parent = Toggle_2
 
+function FileName()
+    local File
+    local FileNamePrefix = "Log_"
+    local Increment = 0
+    repeat
+        Increment = Increment + 1
+        File = pcall(function()
+            readfile("chat-handler/logs/" .. game.PlaceId .. "/" .. FileNamePrefix .. Increment .. ".log")
+        end)
+    until not File
+    return FileNamePrefix .. Increment
+end
+
+local FileName = FileName()
+
 function CreateMessage(Parent, PlayerText, MessageText, MessageColor, Time)
     local Message = Instance.new("Frame")
     local UICorner_4 = Instance.new("UICorner")
@@ -249,6 +264,7 @@ function CreateMessage(Parent, PlayerText, MessageText, MessageColor, Time)
     Message.Parent = Parent
     Message.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     Message.BorderSizePixel = 0
+    Message.ClipsDescendants = true
     Message.Size = UDim2.new(1, 0, 0, 50)
     Message.Visible = true
 
@@ -376,7 +392,6 @@ function ReturnTime()
     local OS = os.date("*t")
     local Time
     local Date
-    local FileName
     local function FormatNumber(Integer)
         if Integer < 10 then
             return string.format("%02d", Integer)
@@ -387,15 +402,60 @@ function ReturnTime()
     if OS["hour"] < 12 then
         Time = FormatNumber(OS["hour"]) .. ":" .. FormatNumber(OS["min"]) .. ":" .. FormatNumber(OS["sec"]) .. " AM"
         Date = FormatNumber(OS["month"]) .. "/" .. FormatNumber(OS["day"]) .. "/" .. OS["year"]
-        FileName = FormatNumber(OS["hour"]) .. "-" .. FormatNumber(OS["min"]) .. "-" .. FormatNumber(OS["sec"])
-        FileName = FileName .. "_" .. FormatNumber(OS["month"]) .. "-" .. FormatNumber(OS["day"]) .. "-" .. OS["year"]
     else
         Time = FormatNumber(OS["hour"]) .. ":" .. FormatNumber(OS["min"]) .. ":" .. FormatNumber(OS["sec"]) .. " PM"
         Date = FormatNumber(OS["month"]) .. "/" .. FormatNumber(OS["day"]) .. "/" .. OS["year"]
-        FileName = FormatNumber(OS["hour"]) .. "-" .. FormatNumber(OS["min"]) .. "-" .. FormatNumber(OS["sec"])
-        FileName = FileName .. "_" .. FormatNumber(OS["month"]) .. "-" .. FormatNumber(OS["day"]) .. "-" .. OS["year"]
     end
-    return Time, Date, FileName
+    return Time, Date
+end
+
+function SaveChat(AutoLog)
+    if AutoLog then
+        if #Messages:GetChildren() - 1 >= tonumber(_G.AutoLogLimit) then
+            local Time, Date = ReturnTime()
+            local CreationTime = "Created at: " .. Time .. ", " .. Date .. "\n"
+            local Info = ""
+            for _, V in ipairs(Messages:GetChildren()) do
+                if V:IsA("Frame") then
+                    Info = Info .. "\n" .. V.TimeStamp.Value .. " - [" .. V.Player.Text:gsub("<font color='#AAAAAA'>", ""):gsub("</font>", "") .. "]: " .. V.PlayerMessage.Text
+                    V:Destroy()
+                    if not (#Messages:GetChildren() - 1 >= tonumber(_G.AutoLogLimit)) then
+                        break
+                    end
+                end
+            end
+            if isfolder("chat-handler/logs/" .. game.PlaceId) == true then
+                if isfile("chat-handler/logs/" .. game.PlaceId .. "/" .. FileName .. ".log") == true then
+                    appendfile("chat-handler/logs/" .. game.PlaceId .. "/" .. FileName .. ".log", Info)
+                else
+                    writefile("chat-handler/logs/" .. game.PlaceId .. "/" .. FileName .. ".log", CreationTime .. Info)
+                end
+            else
+                makefolder("chat-handler/logs/" .. game.PlaceId)
+                writefile("chat-handler/logs/" .. game.PlaceId .. "/" .. FileName .. ".log", CreationTime .. Info)
+            end
+        end
+    else
+        local Time, Date = ReturnTime()
+        local CreationTime = "Created at: " .. Time .. ", " .. Date .. "\n"
+        local Info = ""
+        for _, V in ipairs(Messages:GetChildren()) do
+            if V:IsA("Frame") then
+                Info = Info .. "\n" .. V.TimeStamp.Value .. " - [" .. V.Player.Text:gsub("<font color='#AAAAAA'>", ""):gsub("</font>", "") .. "]: " .. V.PlayerMessage.Text
+                V:Destroy()
+            end
+        end
+        if isfolder("chat-handler/logs/" .. game.PlaceId) == true then
+            if isfile("chat-handler/logs/" .. game.PlaceId .. "/" .. FileName .. ".log") == true then
+                appendfile("chat-handler/logs/" .. game.PlaceId .. "/" .. FileName .. ".log", Info)
+            else
+                writefile("chat-handler/logs/" .. game.PlaceId .. "/" .. FileName .. ".log", CreationTime .. Info)
+            end
+        else
+            makefolder("chat-handler/logs/" .. game.PlaceId)
+            writefile("chat-handler/logs/" .. game.PlaceId .. "/" .. FileName .. ".log", CreationTime .. Info)
+        end
+    end
 end
 
 coroutine.wrap(function()
@@ -408,7 +468,7 @@ coroutine.wrap(function()
 
                 local FrameSize = UDim2.new(
                     Frame.Size.X.Scale, Frame.Size.X.Offset,
-                    Frame.Size.Y.Scale, math.max(MinimumSize + 19, Message.Size.Y.Offset + 19)
+                    Frame.Size.Y.Scale, math.max(MinimumSize + 19, Message.TextBounds.Y + 19)
                 )
 
                 local MessageSize = UDim2.new(
@@ -421,8 +481,8 @@ coroutine.wrap(function()
 
                 TweenTextColor(Message, 0.2, NewColor)
 
-                Frame.Size = FrameSize
-                Message.Size = MessageSize
+                Frame:TweenSize(FrameSize, "Out", "Quint", 0.1, true)
+                Message:TweenSize(MessageSize, "Out", "Quint", 0.1, true)
             end)
         end
     end
@@ -439,22 +499,7 @@ end)()
 
 coroutine.wrap(function()
     while task.wait() do
-        if #Messages:GetChildren() - 1 >= tonumber(_G.AutoLogLimit) then
-            local Time, Date, FileName = ReturnTime()
-            local info = "Saved at: " .. Time .. ", " .. Date .. "\n"
-            for _, V in ipairs(Messages:GetChildren()) do
-                if V:IsA("Frame") then
-                    info = info .. "\n" .. V.TimeStamp.Value .. " - [" .. V.Player.Text:gsub("<font color='#AAAAAA'>", ""):gsub("</font>", "") .. "]: " .. V.PlayerMessage.Text
-                    V:Destroy()
-                end
-            end
-            if isfolder("chat-handler/logs/" .. game.PlaceId) == true then
-                writefile("chat-handler/logs/" .. game.PlaceId .. "/" .. FileName .. "-auto.log", info)
-            else
-                makefolder("chat-handler/logs/" .. game.PlaceId)
-                writefile("chat-handler/logs/" .. game.PlaceId .. "/" .. FileName .. "-auto.log", info)
-            end
-        end
+        SaveChat(true)
     end
 end)()
 
@@ -513,55 +558,40 @@ end)
 
 CommandBox.FocusLost:Connect(function(EnterPressed)
     if EnterPressed then
-        if CommandBox.Text:find("cmds") then
+        if CommandBox.Text:find("^cmds$") then
             setclipboard("https://github.com/ComplexGithub/chat-handler/blob/main/README.md")
             CommandBox.Text = "Copied link to commands!"
+            task.wait(2)
         end
-        if CommandBox.Text:find("cchat") then
-            for _, V in ipairs(Messages:GetChildren()) do
-                if V:IsA("Frame") then
-                    V:Destroy()
-                end
-            end
-            CommandBox.Text = ""
+        if CommandBox.Text:find("^schat$") then
+            SaveChat(false)
         end
-        if CommandBox.Text:find("schat") then
-            local Time, Date, FileName = ReturnTime()
-            local info = "Saved at: " .. Time .. ", " .. Date .. "\n"
-            for _, V in ipairs(Messages:GetChildren()) do
-                if V:IsA("Frame") then
-                    info = info .. "\n" .. V.TimeStamp.Value .. " - [" .. V.Player.Text:gsub("<font color='#AAAAAA'>", ""):gsub("</font>", "") .. "]: " .. V.PlayerMessage.Text
-                end
-            end
-            if isfolder("chat-handler/logs/" .. game.PlaceId) == true then
-                writefile("chat-handler/logs/" .. game.PlaceId .. "/" .. FileName .. ".log", info)
-            else
-                makefolder("chat-handler/logs/" .. game.PlaceId)
-                writefile("chat-handler/logs/" .. game.PlaceId .. "/" .. FileName .. ".log", info)
-            end
-            CommandBox.Text = ""
-        end
-        if CommandBox.Text:find("limit") then
-            local Limit = CommandBox.Text:gsub("limit ", "")
+        if CommandBox.Text:find("^limit%s+") then
+            local Limit = CommandBox.Text:gsub("limit%s+", "")
             _G.AutoLogLimit = tonumber(Limit)
-            writefile("chat-handler/settings.txt", game:GetService("HttpService"):JSONEncode({["Theme"] = _G.CurrentTheme, ["AutoLogLimit"] = Limit}))
-            CommandBox.Text = ""
+            writefile("chat-handler/settings.txt", game:GetService("HttpService"):JSONEncode({["CurrentTheme"] = _G.CurrentTheme, ["AutoLogLimit"] = Limit}))
         end
-        if CommandBox.Text:find("theme") then
-            local Theme = CommandBox.Text:gsub("theme ", "")
+        if CommandBox.Text:find("^theme%s+") then
+            local Theme = CommandBox.Text:gsub("theme%s+", "")
             if isfolder("chat-handler/themes/" .. Theme) then
                 _G.CurrentTheme = Theme
-                writefile("chat-handler/settings.txt", game:GetService("HttpService"):JSONEncode({["Theme"] = Theme, ["AutoLogLimit"] = _G.AutoLogLimit}))
-                CommandBox.Text = ""
+                writefile("chat-handler/settings.txt", game:GetService("HttpService"):JSONEncode({["CurrentTheme"] = Theme, ["AutoLogLimit"] = _G.AutoLogLimit}))
             end
         end
-        if CommandBox.Text:find("restart") then
+        if CommandBox.Text:find("^restart$") then
+            if #Messages:GetChildren() > 1 then
+                SaveChat(false)
+            end
             syn.queue_on_teleport(game:HttpGetAsync("https://raw.githubusercontent.com/ComplexGithub/chat-handler/main/lua/init.lua"))
             game:GetService("TeleportService"):Teleport(game.PlaceId, game:GetService("Players").LocalPlayer)
         end
-        if CommandBox.Text:find("close") then
+        if CommandBox.Text:find("^close$") then
+            if #Messages:GetChildren() > 1 then
+                SaveChat(false)
+            end
             game:GetService("TeleportService"):Teleport(game.PlaceId, game:GetService("Players").LocalPlayer)
         end
+        CommandBox.Text = ""
     end
 end)
 
@@ -572,7 +602,7 @@ for _, V in ipairs(game:GetService("Players"):GetPlayers()) do
             if V == game:GetService("Players").LocalPlayer then
                 local Clone
                 if PlayerText:find("/w") or PlayerText:find("/whisper") then
-                    local Time, _, _2 = ReturnTime()
+                    local Time, _ = ReturnTime()
                     local Temp = PlayerText
                     Temp = Temp:gsub("/w ", "")
                     local PlayerName
@@ -587,7 +617,7 @@ for _, V in ipairs(game:GetService("Players"):GetPlayers()) do
                     Clone = CreateMessage(Messages, P .. " > " .. PlayerName, TextInput, NewColor, Time)
                     UpdateLogs(Clone, "PrivateChatColor")
                 else
-                    local Time, _, _2 = ReturnTime()
+                    local Time, _ = ReturnTime()
                     local ColorInfo = game:GetService("HttpService"):JSONDecode(readfile("chat-handler/themes/" .. _G.CurrentTheme .. "/settings.json"))["UserChatColor"]
                     local NewColor = Color3.fromRGB(ColorInfo.R, ColorInfo.G, ColorInfo.B)
                     Clone = CreateMessage(Messages, P, PlayerText, NewColor, Time)
@@ -596,7 +626,7 @@ for _, V in ipairs(game:GetService("Players"):GetPlayers()) do
             else
                 local Clone
                 if PlayerText:find("/w") or PlayerText:find("/whisper") then
-                    local Time, _, _2 = ReturnTime()
+                    local Time, _ = ReturnTime()
                     local Temp = PlayerText
                     Temp = Temp:gsub("/w ", "")
                     local PlayerName
@@ -611,7 +641,7 @@ for _, V in ipairs(game:GetService("Players"):GetPlayers()) do
                     Clone = CreateMessage(Messages, P .. " > " .. PlayerName, TextInput, NewColor, Time)
                     UpdateLogs(Clone, "PrivateChatColor")
                 else
-                    local Time, _, _2 = ReturnTime()
+                    local Time, _ = ReturnTime()
                     local ColorInfo = game:GetService("HttpService"):JSONDecode(readfile("chat-handler/themes/" .. _G.CurrentTheme .. "/settings.json"))["NormalChatColor"]
                     local NewColor = Color3.fromRGB(ColorInfo.R, ColorInfo.G, ColorInfo.B)
                     Clone = CreateMessage(Messages, P, PlayerText, NewColor, Time)
@@ -629,7 +659,7 @@ game:GetService("Players").PlayerAdded:Connect(function(V)
             if V == game:GetService("Players").LocalPlayer then
                 local Clone
                 if PlayerText:find("/w") or PlayerText:find("/whisper") then
-                    local Time, _, _2 = ReturnTime()
+                    local Time, _ = ReturnTime()
                     local Temp = PlayerText
                     Temp = Temp:gsub("/w ", "")
                     local PlayerName = Temp:match("%w+")
@@ -639,7 +669,7 @@ game:GetService("Players").PlayerAdded:Connect(function(V)
                     Clone = CreateMessage(Messages, P .. " > " .. PlayerName, TextInput, NewColor, Time)
                     UpdateLogs(Clone, "PrivateChatColor")
                 else
-                    local Time, _, _2 = ReturnTime()
+                    local Time, _ = ReturnTime()
                     local ColorInfo = game:GetService("HttpService"):JSONDecode(readfile("chat-handler/themes/" .. _G.CurrentTheme .. "/settings.json"))["UserChatColor"]
                     local NewColor = Color3.fromRGB(ColorInfo.R, ColorInfo.G, ColorInfo.B)
                     Clone = CreateMessage(Messages, P, PlayerText, NewColor, Time)
@@ -648,7 +678,7 @@ game:GetService("Players").PlayerAdded:Connect(function(V)
             else
                 local Clone
                 if PlayerText:find("/w") or PlayerText:find("/whisper") then
-                    local Time, _, _2 = ReturnTime()
+                    local Time, _ = ReturnTime()
                     local Temp = PlayerText
                     Temp = Temp:gsub("/w ", "")
                     local PlayerName = Temp:match("%w+")
@@ -658,7 +688,7 @@ game:GetService("Players").PlayerAdded:Connect(function(V)
                     Clone = CreateMessage(Messages, P .. " > " .. PlayerName, TextInput, NewColor, Time)
                     UpdateLogs(Clone, "PrivateChatColor")
                 else
-                    local Time, _, _2 = ReturnTime()
+                    local Time, _ = ReturnTime()
                     local ColorInfo = game:GetService("HttpService"):JSONDecode(readfile("chat-handler/themes/" .. _G.CurrentTheme .. "/settings.json"))["NormalChatColor"]
                     local NewColor = Color3.fromRGB(ColorInfo.R, ColorInfo.G, ColorInfo.B)
                     Clone = CreateMessage(Messages, P, PlayerText, NewColor, Time)
