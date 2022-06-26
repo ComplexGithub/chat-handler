@@ -13,9 +13,9 @@ loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/ComplexGithub/ch
 ```
 
 ### Commands
-* `cmds` - Gives you a list of commands (Copies a link to this).
-* `cchat` - Clears the chat logs.
+* `cmds` - Gives you a list of commands (Prints out all commands in the Synapse X console).
 * `schat` - Saves the chat logs to your files.
+* `limit [value]` - Sets the auto log's message limit (When the number of logs hit this number, it will automatically save the oldest message to a file).
 * `theme [name]` - Changes the theme to the theme of your choosing. [🔗]([https://google.com/](https://github.com/ComplexGithub/chat-handler/blob/main/themes.md))
 * `restart` - Restarts the GUI.
 * `close` - Closes the GUI (Makes you rejoin to clear anything that may interfere with other scripts that you use).
