@@ -64,6 +64,7 @@ local UICorner_4 = Instance.new("UICorner")
 local EnableLogs = Instance.new("TextLabel")
 local Toggle_2 = Instance.new("TextButton")
 local UICorner_5 = Instance.new("UICorner")
+local Shadow = Instance.new("ImageLabel")
 
 ChatHandler.Name = "ChatHandler"
 ChatHandler.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
@@ -236,6 +237,19 @@ Toggle_2.TextSize = 14.000
 
 UICorner_5.CornerRadius = UDim.new(0, 3)
 UICorner_5.Parent = Toggle_2
+
+Shadow.Name = "Shadow"
+Shadow.Parent = Main
+Shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+Shadow.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Shadow.BackgroundTransparency = 1.000
+Shadow.BorderSizePixel = 0
+Shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+Shadow.Size = UDim2.new(1, 30, 1, 30)
+Shadow.Image = "rbxassetid://10049363189"
+Shadow.ScaleType = Enum.ScaleType.Slice
+Shadow.SliceCenter = Rect.new(20, 20, 50, 50)
+Shadow.TileSize = UDim2.new(20, 20, 50, 50)
 
 function FileName()
     local File
