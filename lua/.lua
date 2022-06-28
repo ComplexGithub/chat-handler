@@ -7,19 +7,6 @@ if game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui", 3):FindFirst
     game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui", 3):FindFirstChild("ChatHandler"):Destroy()
 end
 
-if _G.Connections == nil then
-    _G.Connections = {}
-else
-    for _, Connection in ipairs(_G.Connections) do
-        if Connection then
-            coroutine.yield(Connection)
-            wait()
-            Connection = nil
-            table.remove(_G.Connections, table.find(_G.Connections, Connection))
-        end
-    end
-end
-
 if isfolder("chat-handler") == false then
     makefolder("chat-handler")
 end
@@ -493,10 +480,11 @@ function SaveChat(AutoLog)
     end
 end
 
-local Connections = {}
+local Cancel = false
 
-Connections.A = coroutine.wrap(function()
-    while task.wait() do
+local Connection_1 = coroutine.wrap(function()
+    while not Cancel do
+		task.wait()
         for _, Log in ipairs(Logs) do
             pcall(function()
                 local MinimumSize = 31
@@ -525,8 +513,9 @@ Connections.A = coroutine.wrap(function()
     end
 end)()
 
-Connections.B = coroutine.wrap(function()
-    while wait() do
+local Connection_2 = coroutine.wrap(function()
+    while not Cancel do
+		wait()
         Messages.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + UIListLayout.Padding.Offset)
         if _G.AutoScroll then
             Messages.CanvasPosition = Messages.CanvasPosition + Vector2.new(0, UIListLayout.AbsoluteContentSize.Y + UIListLayout.Padding.Offset)
@@ -534,15 +523,14 @@ Connections.B = coroutine.wrap(function()
     end
 end)()
 
-Connections.C = coroutine.wrap(function()
-    while task.wait() do
+local Connection_3 = coroutine.wrap(function()
+    while not Cancel do
+		task.wait()
         SaveChat(true)
     end
 end)()
 
-for _, Connection in ipairs(Connections) do
-	table.insert(_G.Connections, Connection)
-end
+local Connections = {Connection_1, Connection_2, Connection_3}
 
 Drag(Main)
 
@@ -626,22 +614,31 @@ CommandBox.FocusLost:Connect(function(EnterPressed)
             if #Messages:GetChildren() > 1 then
                 SaveChat(false)
             end
+            CommandBox.Text = "Restarting..."
+            Cancel = true
+            wait()
+            for _, Connection in ipairs(Connections) do
+                Connection = nil
+            end
+            wait(2)
+            if ChatHandler then
+                ChatHandler:Destroy()
+            end
             loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/ComplexGithub/chat-handler/main/lua/.lua"))();
         end
         if CommandBox.Text:find("^close$") or CommandBox.Text:find("^cl$") then
             if #Messages:GetChildren() > 1 then
                 SaveChat(false)
             end
+            CommandBox.Text = "Closing..."
+            Cancel = true
+            wait()
+            for _, Connection in ipairs(Connections) do
+                Connection = nil
+            end
+            wait(2)
             if ChatHandler then
                 ChatHandler:Destroy()
-            end
-            for _, Connection in ipairs(_G.Connections) do
-                if Connection then
-                    coroutine.yield(Connection)
-                    wait()
-                    Connection = nil
-                    table.remove(_G.Connections, table.find(_G.Connections, Connection))
-                end
             end
         end
         CommandBox.Text = ""
