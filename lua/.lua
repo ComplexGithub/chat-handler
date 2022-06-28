@@ -6,8 +6,8 @@ repeat wait() until game:IsLoaded()
 if isfolder("chat-handler") == false then
     makefolder("chat-handler")
 end
-if isfile("chat-handler/settings.txt") == false then
-    writefile("chat-handler/settings.txt", game:GetService("HttpService"):JSONEncode({["CurrentTheme"] = "default", ["AutoLogLimit"] = 200}))
+if isfile("chat-handler/settings.json") == false then
+    writefile("chat-handler/settings.json", game:GetService("HttpService"):JSONEncode({["CurrentTheme"] = "default", ["AutoLogLimit"] = 200}))
 end
 if isfolder("chat-handler/logs") == false then
     makefolder("chat-handler/logs")
@@ -38,8 +38,8 @@ if isfile("chat-handler/themes/default/settings.json") == false then
 }]])
 end
 
-_G.CurrentTheme = game:GetService("HttpService"):JSONDecode(readfile("chat-handler/settings.txt"))["CurrentTheme"]
-_G.AutoLogLimit = game:GetService("HttpService"):JSONDecode(readfile("chat-handler/settings.txt"))["AutoLogLimit"]
+_G.CurrentTheme = game:GetService("HttpService"):JSONDecode(readfile("chat-handler/settings.json"))["CurrentTheme"]
+_G.AutoLogLimit = game:GetService("HttpService"):JSONDecode(readfile("chat-handler/settings.json"))["AutoLogLimit"]
 
 local Logs = {}
 
@@ -586,13 +586,13 @@ CommandBox.FocusLost:Connect(function(EnterPressed)
         if CommandBox.Text:find("^limit%s+") or CommandBox.Text:find("^l%s+") then
             local Limit = CommandBox.Text:gsub("%w+%s+", "")
             _G.AutoLogLimit = tonumber(Limit)
-            writefile("chat-handler/settings.txt", game:GetService("HttpService"):JSONEncode({["CurrentTheme"] = _G.CurrentTheme, ["AutoLogLimit"] = Limit}))
+            writefile("chat-handler/settings.json", game:GetService("HttpService"):JSONEncode({["CurrentTheme"] = _G.CurrentTheme, ["AutoLogLimit"] = Limit}))
         end
         if CommandBox.Text:find("^theme%s+") or CommandBox.Text:find("^th%s+")then
             local Theme = CommandBox.Text:gsub("%w+%s+", "")
             if isfolder("chat-handler/themes/" .. Theme) then
                 _G.CurrentTheme = Theme
-                writefile("chat-handler/settings.txt", game:GetService("HttpService"):JSONEncode({["CurrentTheme"] = Theme, ["AutoLogLimit"] = _G.AutoLogLimit}))
+                writefile("chat-handler/settings.json", game:GetService("HttpService"):JSONEncode({["CurrentTheme"] = Theme, ["AutoLogLimit"] = _G.AutoLogLimit}))
             end
         end
         if CommandBox.Text:find("^restart$") or CommandBox.Text:find("^rs$") then
