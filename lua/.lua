@@ -3,6 +3,23 @@
 
 repeat wait() until game:IsLoaded()
 
+if game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui", 3):FindFirstChild("ChatHandler") then
+    game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui", 3):FindFirstChild("ChatHandler"):Destroy()
+end
+
+if _G.Connections == nil then
+    _G.Connections = {}
+else
+    for _, Connection in ipairs(_G.Connections) do
+        if Connection then
+            coroutine.yield(Connection)
+            wait()
+            Connection = nil
+            table.remove(_G.Connections, table.find(_G.Connections, Connection))
+        end
+    end
+end
+
 if isfolder("chat-handler") == false then
     makefolder("chat-handler")
 end
@@ -241,12 +258,12 @@ UICorner_5.Parent = Toggle_2
 Shadow.Name = "Shadow"
 Shadow.Parent = Main
 Shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
 Shadow.BackgroundTransparency = 1.000
 Shadow.BorderSizePixel = 0
 Shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
 Shadow.Size = UDim2.new(1, 30, 1, 30)
 Shadow.Image = "rbxassetid://10049363189"
-Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
 Shadow.ScaleType = Enum.ScaleType.Slice
 Shadow.SliceCenter = Rect.new(20, 20, 50, 50)
 Shadow.TileSize = UDim2.new(20, 20, 50, 50)
@@ -408,7 +425,11 @@ function ReturnTime()
     local Date
     local function FormatNumber(Integer)
         if Integer < 10 then
-            return string.format("%02d", Integer)
+            if Integer == 0 then
+                return 12
+            else
+                return string.format("%02d", Integer)
+            end
         else
             return Integer
         end
@@ -472,7 +493,9 @@ function SaveChat(AutoLog)
     end
 end
 
-coroutine.wrap(function()
+local Connections = {}
+
+Connections.A = coroutine.wrap(function()
     while task.wait() do
         for _, Log in ipairs(Logs) do
             pcall(function()
@@ -502,7 +525,7 @@ coroutine.wrap(function()
     end
 end)()
 
-coroutine.wrap(function()
+Connections.B = coroutine.wrap(function()
     while wait() do
         Messages.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + UIListLayout.Padding.Offset)
         if _G.AutoScroll then
@@ -511,11 +534,15 @@ coroutine.wrap(function()
     end
 end)()
 
-coroutine.wrap(function()
+Connections.C = coroutine.wrap(function()
     while task.wait() do
         SaveChat(true)
     end
 end)()
+
+for _, Connection in ipairs(Connections) do
+	table.insert(_G.Connections, Connection)
+end
 
 Drag(Main)
 
@@ -599,14 +626,23 @@ CommandBox.FocusLost:Connect(function(EnterPressed)
             if #Messages:GetChildren() > 1 then
                 SaveChat(false)
             end
-            syn.queue_on_teleport(game:HttpGetAsync("https://raw.githubusercontent.com/ComplexGithub/chat-handler/main/lua/init.lua"))
-            game:GetService("TeleportService"):Teleport(game.PlaceId, game:GetService("Players").LocalPlayer)
+            loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/ComplexGithub/chat-handler/main/lua/.lua"))();
         end
         if CommandBox.Text:find("^close$") or CommandBox.Text:find("^cl$") then
             if #Messages:GetChildren() > 1 then
                 SaveChat(false)
             end
-            game:GetService("TeleportService"):Teleport(game.PlaceId, game:GetService("Players").LocalPlayer)
+            if ChatHandler then
+                ChatHandler:Destroy()
+            end
+            for _, Connection in ipairs(_G.Connections) do
+                if Connection then
+                    coroutine.yield(Connection)
+                    wait()
+                    Connection = nil
+                    table.remove(_G.Connections, table.find(_G.Connections, Connection))
+                end
+            end
         end
         CommandBox.Text = ""
     end
